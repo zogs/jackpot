@@ -52,6 +52,7 @@ window.initialize = function() {
 	CONFIG.center_line = line;
 
 	CONFIG.fruit_list = ['citron','treffle','diamond','cerise','peche','seven','radis','courge','cloche'];
+	CONFIG.fruit_list = ['treffle','citron','radis','cerise','diamond','peche','seven','courge','cloche'];
 	CONFIG.fruit_list_ordered = ['citron','cerise','peche','radis','courge','cloche','treffle','seven','diamond'];
 	CONFIG.fruit_size = 185;
 	CONFIG.fruits = new createjs.SpriteSheet({
@@ -218,6 +219,8 @@ window.displayWelcomeScreen = function() {
 	var cont = new createjs.Container();
 	stage.addChild(cont);
 
+	GAME.screen.wheel.alpha = 0.2;
+
 	var width = WIDTH - 100;
 	var height = 360;
 	var bg = new createjs.Shape();
@@ -285,7 +288,8 @@ window.displayWelcomeScreen = function() {
 		evt.stopImmediatePropagation();
 		evt.remove();
 		cont.removeAllChildren();
-		stage.removeChild(cont);
+		stage.removeChild(cont);	
+		GAME.screen.wheel.alpha = 1;	
 		resetBoard();
 	},null,true);
 }
@@ -432,8 +436,10 @@ window.rollWheelInertia = function() {
 	sub1.y += wheel.velocity;
 	sub2.y = sub1.y + sub1.height;
 
-	if(wheel.velocity > 0) wheel.velocity -= 1;
-	if(wheel.velocity < 0) wheel.velocity += 1;
+	if(wheel.velocity > 0) wheel.velocity = wheel.velocity - 0.2*Math.pow(wheel.velocity,0.6);
+	if(wheel.velocity < 0) wheel.velocity = wheel.velocity + 0.2*Math.pow(wheel.velocity,0.6);
+	//if(wheel.velocity > 0) wheel.velocity -= 1;
+	//if(wheel.velocity < 0) wheel.velocity += 1;
 
 	if(sub1.y < - sub1.height) {
 		sub1.y = sub1.height;
@@ -605,7 +611,6 @@ window.computeItemsResult = function() {
 	}
 
 	//display total gain
-	console.log(items,gains,gain);
 	GAME.user.score += gain;
 	GAME.board.score.text = GAME.user.score+' $';
 
@@ -634,7 +639,7 @@ window.resetBoard = function() {
 	GAME.try = 0;
 	GAME.board.items = [];
 	GAME.board.fruits = [];
-console.log('resetBoard');
+
 	initScrollEventListeners();
 
 }
@@ -651,7 +656,7 @@ window.initContinueScreen = function() {
 	let rect = new createjs.Shape();
 	rect.graphics.beginFill('rgba(0,0,0,0.5').drawRoundRect(0,0,140,40,5,5,5,5);
 	button.addChild(rect);
-	let text = new createjs.Text('CONTINUE',"20px Arial","#FFF");
+	let text = new createjs.Text('CONTINUER',"18px Arial","#FFF");
 	text.x = 20;
 	text.y = 10;
 	button.addChild(text);
@@ -749,12 +754,12 @@ window.initJackpotScreen = function(gain) {
 	let rect = new createjs.Shape();
 	rect.graphics.beginFill('rgba(0,0,0,0.5').drawRoundRect(0,0,140,40,5,5,5,5);
 	button.addChild(rect);
-	let text = new createjs.Text('REJOUER',"20px Arial","#FFF");
+	let text = new createjs.Text('CONTINUER',"18px Arial","#FFF");
 	text.x = 20;
 	text.y = 10;
 	button.addChild(text);
 	butt_cont.addChild(button);
-	button.on('pressup',function(){ 
+	stage.on('pressup',function(evt){ 
 		evt.stopImmediatePropagation();
 		evt.remove();
 		cont.removeAllChildren();
