@@ -33,10 +33,9 @@ window.loaded = function() {
 
 window.initialize = function() {
 
-	console.log('init');
-
 	HEIGHT = stage.canvas.height;
 	WIDTH = stage.canvas.width;
+	RATIO = WIDTH / HEIGHT;
 
 	var background = new createjs.Shape();
 	background.graphics.beginFill('#343740').drawRect(0,0,WIDTH,HEIGHT);
@@ -90,6 +89,15 @@ window.initialize = function() {
 		'radis' : [0,1,100,1000],
 		'courge' : [0,1,100,1000],
 		'cloche' : [0,3,300,3000],
+	}
+
+	//detect ANDROID or IOS
+	GAME.ua = navigator.userAgent.toLowerCase();
+	GAME.android = GAME.ua.indexOf('android') > -1 ? true : false;
+	GAME.ios = ( GAME.ua.indexOf('iphone') > -1 || GAME.ua.indexOf('ipad') > -1  ) ? true : false;
+	if(GAME.android || GAME.ios) {
+		//enable Touch events
+		createjs.Touch.enable(stage)
 	}
 
 
@@ -167,9 +175,42 @@ window.initialize = function() {
 	stage.addEventListener('stagemousemove',onMouseMove);
 	stage.addEventListener('item_selected',onItemSelected);
 
-	//INIT EVENTS
-	//initScrollEventListeners();
+	//RESIZE
+	resizeCanvas();
+	window.onresize = browserResize;
+
+	//INITIAL
 	displayWelcomeScreen();
+}
+
+window.browserResize = function() {
+	if(window.browserResizeTimeout) window.clearTimeout(window.browserResizeTimeout);	
+	window.browserResizeTimeout = window.setTimeout(window.browserResizeEnded,500);
+}
+
+window.browserResizeEnded = function() {
+	window.resizeCanvas();
+}
+
+window.resizeCanvas = function() {
+
+	var windowWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+	var windowHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;	
+
+	var currentHeight = (windowHeight < HEIGHT)? windowHeight : HEIGHT;
+	var currentWidth = currentHeight * RATIO;
+
+	if (GAME.android || GAME.ios) { //if android or ios , hide address bar
+        document.body.style.height = (windowHeight + 50) + 'px';
+    }
+
+	document.getElementById('canvas').style.width = currentWidth+'px';
+	document.getElementById('canvas').style.height = currentHeight+'px';
+
+	//scroll to top
+	window.setTimeout(function() { //rowsers don't fire if there is not short delay
+		window.scrollTo(0,1);
+    }, 1);
 }
 
 window.displayWelcomeScreen = function() {
@@ -404,7 +445,7 @@ window.rollWheelInertia = function() {
 		wheel.setChildIndex(sub2,0);
 	}
 
-	if(wheel.velocity <= 0) {
+	if(wheel.velocity < 1) {
 
 		stage.off('tick',GAME.listener.scroll_inertia);
 		stage.dispatchEvent('wheel_inertia_zero');
@@ -459,6 +500,9 @@ window.rollFinalAjustment = function(evt) {
 	var closer = ordered[0];
 	var delta = closer.delta;
 	var dist = closer.dist;
+
+	console.log('Width',WIDTH,'Height',HEIGHT);
+	console.log(closer.currentAnimation,delta,dist);
 
 	var sub1 = wheel.getChildAt(0);
 	var sub2 = wheel.getChildAt(1);
