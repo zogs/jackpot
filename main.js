@@ -71,7 +71,7 @@ window.initialize = function() {
 	});
 	CONFIG.lang = LOCALE.lang;
 	CONFIG.trans = LOCALE.trans;
-	CONFIG.init_score = 10;
+	CONFIG.init_score = 100;
 	CONFIG.try_fee = 10;
 
 	GAME.try = 0;
