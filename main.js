@@ -8,8 +8,6 @@ var GAME = {};
 
 window.loaded = function() {
 
-
-	console.log('loaded');
 	stage = new createjs.Stage('canvas');
 
 	queue = new createjs.LoadQueue();
@@ -71,6 +69,10 @@ window.initialize = function() {
 			'drop': [0,4,'drop',0.5],
 		},
 	});
+	CONFIG.lang = LOCALE.lang;
+	CONFIG.trans = LOCALE.trans;
+	CONFIG.init_score = 10;
+	CONFIG.try_fee = 10;
 
 	GAME.try = 0;
 	GAME.board = {};
@@ -79,17 +81,19 @@ window.initialize = function() {
 	GAME.listener = {};
 	GAME.screen = {};
 	GAME.user = {};
-	GAME.user.score = 0;
+	GAME.user.score = CONFIG.init_score;
+	GAME.user.fails = 0;
+	GAME.user.gameovers = 0;
 	GAME.scoring = {
-		'citron' : [0,1,100,1000],
-		'treffle' : [0,5,500,5000],
-		'diamond' : [0,10,1000,10000],
-		'cerise' : [0,1,100,1000],
-		'peche' : [0,1,100,1000],
-		'seven' : [0,7,700,7000],
-		'radis' : [0,1,100,1000],
-		'courge' : [0,1,100,1000],
-		'cloche' : [0,3,300,3000],
+		'citron' : [0,0,50,500],
+		'treffle' : [0,0,80,1000],
+		'diamond' : [0,0,100,5000],
+		'cerise' : [0,0,50,500],
+		'peche' : [0,0,50,500],
+		'seven' : [0,0,77,777],
+		'radis' : [0,0,50,500],
+		'courge' : [0,0,50,500],
+		'cloche' : [0,0,80,1000],
 	}
 
 	//detect ANDROID or IOS
@@ -182,6 +186,8 @@ window.initialize = function() {
 
 	//INITIAL
 	displayWelcomeScreen();
+	//GAME.user.gameovers = 1;
+	//initGameOverScreen();
 }
 
 window.browserResize = function() {
@@ -242,7 +248,7 @@ window.displayWelcomeScreen = function() {
 	createjs.Tween.get(icon,{loop:true}).wait(1000).to({rotation: - 35},250).to({rotation: 0},250);
 	var text = new createjs.Text('','12px Sans-Serif','white');
 	text.lineWidth = 150;
-	text.text = 'Utilise le doigt (ou la souris) pour faire tourner la roue';
+	text.text = CONFIG.trans.useFinger;
 	text.x = icon.x + 35;
 	text.y = icon.y - 20;
 	cont.addChild(text);
@@ -256,7 +262,7 @@ window.displayWelcomeScreen = function() {
 	createjs.Tween.get(item,{loop:true}).wait(1250).to({scaleX: 0.4, scaleY: 0.4},150).to({scaleX:0.3, scaleY:0.3}, 100);
 	var text = new createjs.Text('','12px Sans-Serif','white');
 	text.lineWidth = 150;
-	text.text = 'Gagne le Jackpot en alignant 3 symboles a la suite !';
+	text.text = CONFIG.trans.alignSymbols;
 	text.x = item.x + 35;
 	text.y = item.y - 20;
 	cont.addChild(text);
@@ -268,7 +274,7 @@ window.displayWelcomeScreen = function() {
 	cont.addChild(coin);
 	var text = new createjs.Text('','12px Sans-Serif','white');
 	text.lineWidth = 150;
-	text.text = 'Fait pleuvoir les dollars !';
+	text.text = CONFIG.trans.pourDollars;
 	text.x = item.x + 35;
 	text.y = coin.y - 5;
 	cont.addChild(text);
@@ -278,7 +284,7 @@ window.displayWelcomeScreen = function() {
 	button.x = bg.x;
 	button.y = 380;
 	cont.addChild(button);
-	var text = new createjs.Text('JOUER','bold 24px Sans-Serif','white');
+	var text = new createjs.Text(CONFIG.trans.btnPlay,'bold 24px Sans-Serif','white');
 	text.textAlign = 'center';
 	text.x = WIDTH/2;
 	text.y = button.y + 10;
@@ -507,9 +513,6 @@ window.rollFinalAjustment = function(evt) {
 	var delta = closer.delta;
 	var dist = closer.dist;
 
-	console.log('Width',WIDTH,'Height',HEIGHT);
-	console.log(closer.currentAnimation,delta,dist);
-
 	var sub1 = wheel.getChildAt(0);
 	var sub2 = wheel.getChildAt(1);
 	createjs.Tween.get(sub1).to({y:sub1.y + delta},dist*10,createjs.Ease.bounceOut);
@@ -587,8 +590,10 @@ window.computeItemsResult = function() {
 			let count = countItems[item];
 			if(count >= 3) var jackpot = true;
 			let score = GAME.scoring[item][count];
-			dones[item] = score;
-			gains.push(score);					
+			if(score != 0) {
+				dones[item] = score;
+				gains.push(score);									
+			}
 		}
 	}
 
@@ -610,23 +615,72 @@ window.computeItemsResult = function() {
 		;
 	}
 
-	//display total gain
-	GAME.user.score += gain;
-	GAME.board.score.text = GAME.user.score+' $';
+	//add and display total gain
+	addGain(gain);
 
-
-	if(jackpot == true) {
-
-		initJackpotScreen(gain);
-	}
-	else {
-
-		initContinueScreen();
-	}
-
-
+	//remove listeners
 	removeScrollEventListeners();
 
+	//launch jackpot screen
+	if(jackpot == true) {
+		GAME.user.fails = 0;
+		return initJackpotScreen(gain);
+	}
+	
+	//launch continue screen
+	if(gain != 0) {
+		GAME.user.fails += 1;
+		return initContinueScreen();
+	}
+
+	//if no gain
+	applyTryFee();
+
+	//if game over
+	if(GAME.user.score <= 0) {
+
+		GAME.user.gameovers += 1;
+		return initGameOverScreen();
+	}		
+	
+	//continue
+	GAME.user.fails++;
+	return initContinueScreen();
+
+}
+
+window.setScore = function(n) {
+
+	GAME.user.score = n;
+	GAME.board.score.text = n + ' $';
+}
+
+window.resetScore = function() {
+
+	setScore(CONFIG.init_score);
+	GAME.user.fails = 0;
+}
+
+window.addGain = function(gain) {
+
+	GAME.user.score += gain;
+	GAME.board.score.text = GAME.user.score + ' $';
+
+}
+
+window.applyTryFee = function() {
+
+	addGain(-CONFIG.try_fee);
+
+	let text = new createjs.Text('- '+CONFIG.try_fee+' $','14px Times Serif', 'red');
+		text.textAlign = 'right';
+		text.x = GAME.board.score.x + 100;
+		text.y = GAME.board.score.y - 20;
+		text.alpha = 0;
+		stage.addChild(text);
+		createjs.Tween.get(text).to({alpha:1},0).to({ y: text.y - 70, alpha:0},1500)
+			.call(function() { this.parent.removeChild(this); })
+		;
 }
 
 window.resetBoard = function() {
@@ -644,6 +698,32 @@ window.resetBoard = function() {
 
 }
 
+window.getContinueMessage = function() {
+
+	var level = GAME.user.fails;
+	var messages = CONFIG.trans.encouragements;
+	var mess = [];
+	for(let i=0;i < messages.length; i++) {
+		var msg = messages[i];
+		if(msg.lvl <= level) mess.push(msg);
+	}
+
+	return mess[Math.floor(Math.random()*mess.length)].txt.toUpperCase();
+
+}
+
+window.getGameoverMessage = function() {
+
+	var messages = CONFIG.trans.msgGameover;
+	var level = GAME.user.gameovers;
+
+	if(messages[level - 1]) {
+		return messages[level - 1].txt;
+	}
+
+	return messages[messages.length-1].txt;
+}
+
 window.initContinueScreen = function() {
 
 	var cont = GAME.screen.overlay;
@@ -653,11 +733,16 @@ window.initContinueScreen = function() {
 	button.x = 110;
 	button.y = stage.canvas.height / 2 - 100;
 	button.mouseEnabled = true;
+	let text = new createjs.Text('',"18px Arial","#FFF");
+	text.text = getContinueMessage();
+	let b = text.getBounds();
+	console.log(b);
+	let p = 20;
 	let rect = new createjs.Shape();
-	rect.graphics.beginFill('rgba(0,0,0,0.5').drawRoundRect(0,0,140,40,5,5,5,5);
+	rect.graphics.beginFill('rgba(0,0,0,0.5').drawRoundRect(0,0,b.width + 2*p,40,5,5,5,5);
 	button.addChild(rect);
-	let text = new createjs.Text('CONTINUER',"18px Arial","#FFF");
-	text.x = 20;
+	text.textAlign = 'center';
+	text.x = p + b.width / 2 ;
 	text.y = 10;
 	button.addChild(text);
 	cont.addChild(button);
@@ -667,6 +752,75 @@ window.initContinueScreen = function() {
 		cont.removeAllChildren();
 		resetBoard();
 	});
+}
+
+window.initGameOverScreen = function() {
+
+	var screen = GAME.screen.overlay;
+	screen.removeAllChildren();
+
+	//hide wheel
+	createjs.Tween.get(GAME.screen.wheel).to({ alpha: 0}, 1000);
+
+	//show game over
+	var cont = new createjs.Container();
+	cont.alpha = 0;
+	screen.addChild(cont);
+	createjs.Tween.get(cont).to({alpha: 1}, 2500);
+
+	//game over text
+	var go = new createjs.Text('GAME OVER',"bold 20px Arial, sans-serif", "black");
+	go.x = 120;
+	go.y = 50;
+	cont.addChild(go);
+
+	//story text
+	var msg = new createjs.Text(getGameoverMessage(),"14px Arial, sans-serif", "#FFF");
+	msg.textAlign = 'left';
+	msg.lineWidth = WIDTH - 100;
+	msg.lineHeight = 30;
+	var b = msg.getBounds();
+	var p = 20;	
+	msg.width = b.width + 2*p;
+	msg.height = b.height + 2*p;		
+	var rect = new createjs.Shape();
+	rect.graphics.beginFill('rgba(0,0,0,0.5').drawRoundRect(0,0,b.width + 2*p,b.height + 2*p,5,5,5,5);
+	cont.addChild(rect);
+	msg.x = 55;
+	msg.y = 100;
+	rect.x = msg.x - p;
+	rect.y = msg.y - p;
+	cont.addChild(msg);
+
+	//button
+	var button = new createjs.Container();
+	button.x = 110;
+	button.y = msg.y + msg.height + 10;
+	button.mouseEnabled = true;
+	var text = new createjs.Text('',"18px Arial","#FFF");
+	text.text = CONFIG.trans.btnGameover;
+	var b = text.getBounds();
+	var p = 20;
+	var rect = new createjs.Shape();
+	rect.graphics.beginFill('rgba(0,0,0,0.5').drawRoundRect(0,0,b.width + 2*p,40,5,5,5,5);
+	button.addChild(rect);
+	text.textAlign = 'center';
+	text.x = p + b.width / 2 ;
+	text.y = 10;
+	button.addChild(text);
+	cont.addChild(button);
+	stage.on('pressup',function(evt){ 
+		evt.stopImmediatePropagation();
+		evt.remove();
+		screen.removeAllChildren();
+		GAME.screen.wheel.alpha = 1;
+		resetScore();
+		resetBoard();
+	});
+	
+
+
+	
 }
 
 window.initJackpotScreen = function(gain) {
@@ -707,7 +861,6 @@ window.initJackpotScreen = function(gain) {
 
 	let nb_coin = 10;
 	if(gain) nb_coin = gain / 50;
-	console.log(nb_coin+' coins');
 	while(nb_coin>0) {
 		let coin = new createjs.Sprite(CONFIG.coins,'drop');
 		coin.gotoAndPlay(Math.floor(Math.random()*5));

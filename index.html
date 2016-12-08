@@ -16,7 +16,16 @@
 	</body>
 	
 	
-
+	<script type="text/javascript">
+		var head = document.getElementsByTagName('head')[0];
+		var js = document.createElement("script");
+		js.type = "text/javascript";
+		var langs = ['fr'];
+		var lang = window.navigator.userLanguage || window.navigator.language;
+		if (langs[lang]) { js.src = "assets/lang/lang_"+lang+".js"; }
+		else { js.src = "assets/lang/lang_fr.js"; }
+		head.appendChild(js);
+	</script>
 	<script src="lib/createjs/easeljs-0.8.1.min.js"></script>
 	<script src="lib/createjs/tweenjs-0.6.1.min.js"></script>
 	<script src="lib/createjs/preloadjs-0.6.1.min.js"></script>
