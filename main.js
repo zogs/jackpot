@@ -85,15 +85,15 @@ window.initialize = function() {
 	GAME.user.fails = 0;
 	GAME.user.gameovers = 0;
 	GAME.scoring = {
-		'citron' : [0,0,50,500],
-		'treffle' : [0,0,80,1000],
-		'diamond' : [0,0,100,5000],
-		'cerise' : [0,0,50,500],
-		'peche' : [0,0,50,500],
-		'seven' : [0,0,77,777],
-		'radis' : [0,0,50,500],
-		'courge' : [0,0,50,500],
-		'cloche' : [0,0,80,1000],
+		'citron' : [0,0,0,500],
+		'treffle' : [0,0,0,1500],
+		'diamond' : [0,0,0,5000],
+		'cerise' : [0,0,0,500],
+		'peche' : [0,0,0,500],
+		'seven' : [0,0,0,7777],
+		'radis' : [0,0,0,500],
+		'courge' : [0,0,0,500],
+		'cloche' : [0,0,0,2500],
 	}
 
 	//detect ANDROID or IOS
@@ -734,9 +734,8 @@ window.initContinueScreen = function() {
 	button.y = stage.canvas.height / 2 - 100;
 	button.mouseEnabled = true;
 	let text = new createjs.Text('',"18px Arial","#FFF");
-	text.text = getContinueMessage();
+	text.text = CONFIG.trans.btnContinue;
 	let b = text.getBounds();
-	console.log(b);
 	let p = 20;
 	let rect = new createjs.Shape();
 	rect.graphics.beginFill('rgba(0,0,0,0.5').drawRoundRect(0,0,b.width + 2*p,40,5,5,5,5);
